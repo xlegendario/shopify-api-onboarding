@@ -30,7 +30,8 @@ app.get("/shopify", (req, res) => {
 
   if (!shop) return res.status(400).send("Missing shop");
 
-  const scopes = "read_orders,read_products,write_products,read_inventory,write_inventory,read_locations,write_fulfillments,write_fulfillments";
+  const scopes =
+    "read_assigned_fulfillment_orders,write_assigned_fulfillment_orders,read_fulfillments,write_fulfillments,write_inventory,read_inventory,read_locations,write_locations,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders,read_orders,read_products,write_products";
 
   const redirectUri = "https://shopify-api-onboarding.onrender.com/shopify/callback";
 
