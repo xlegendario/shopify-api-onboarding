@@ -26,7 +26,21 @@ function verifyHmac(query) {
 }
 
 app.get("/shopify", (req, res) => {
-  res.send("Lojiq Shopify app is running.");
+  const shop = req.query.shop;
+
+  if (!shop) return res.status(400).send("Missing shop");
+
+  const scopes = "read_orders,read_products,write_products,read_inventory,write_inventory,read_locations,write_fulfillments,write_fulfillments";
+
+  const redirectUri = "https://shopify-api-onboarding.onrender.com/shopify/callback";
+
+  const installUrl =
+    `https://${shop}/admin/oauth/authorize` +
+    `?client_id=${CLIENT_ID}` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+  res.redirect(installUrl);
 });
 
 app.get("/shopify/callback", async (req, res) => {
