@@ -25,13 +25,48 @@ function verifyHmac(query) {
   );
 }
 
+/*
+  THIS list is what a store actually grants, not the one in the Partner
+  dashboard.
+
+  The dashboard says what the app MAY ask for. This string is what it DOES
+  ask for, and Shopify grants exactly what is asked. So adding a scope there
+  and reinstalling changes nothing: the install link built below still asks
+  for the same thirteen, the store grants thirteen, and the token comes back
+  with thirteen. That cost an afternoon of reinstalling and wondering.
+
+  read_publications and write_publications are new. Without them a product
+  can be created, priced and stocked and still be visible to nobody,
+  because a product made through the API is published to no channel at all.
+
+  Changing this list means every store has to install again to get a token
+  that carries it. An existing token keeps the scopes it was born with,
+  forever, and goes on working - which is exactly why this is easy to miss.
+*/
+const SCOPES = [
+  "read_assigned_fulfillment_orders",
+  "write_assigned_fulfillment_orders",
+  "read_fulfillments",
+  "write_fulfillments",
+  "read_inventory",
+  "write_inventory",
+  "read_locations",
+  "write_locations",
+  "read_merchant_managed_fulfillment_orders",
+  "write_merchant_managed_fulfillment_orders",
+  "read_orders",
+  "read_products",
+  "write_products",
+  "read_publications",
+  "write_publications"
+];
+
 app.get("/shopify", (req, res) => {
   const shop = req.query.shop;
 
   if (!shop) return res.status(400).send("Missing shop");
 
-  const scopes =
-    "read_assigned_fulfillment_orders,write_assigned_fulfillment_orders,read_fulfillments,write_fulfillments,write_inventory,read_inventory,write_locations,read_locations,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders,read_orders,read_products,write_products";
+  const scopes = SCOPES.join(",");
 
   const redirectUri = "https://shopify-api-onboarding.onrender.com/shopify/callback";
 
@@ -73,6 +108,21 @@ app.get("/shopify/callback", async (req, res) => {
     console.log("SHOP:", shop);
     console.log("ACCESS TOKEN:", data.access_token);
     console.log("SCOPES:", data.scope);
+
+    /*
+      Said out loud, because the failure this catches is silent otherwise.
+
+      Shopify grants what was asked for, so a scope missing here means the
+      version that was installed is not the one this code asks for - and the
+      token still works for everything else, which is what makes it hard to
+      spot.
+    */
+    const granted = String(data.scope || "").split(",");
+    const missing = SCOPES.filter((scope) => !granted.includes(scope));
+
+    if (missing.length) {
+      console.warn("LET OP - niet toegekend:", missing.join(", "));
+    }
 
     res.send(`
       <h2>Shopify app installed</h2>
